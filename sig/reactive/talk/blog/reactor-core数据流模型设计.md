@@ -360,7 +360,24 @@ request(n)
 背压通常在以下场景中使用：
 1. 网络通信中服务端控制客户端的请求速度或发布者与订阅者不在同一个线程中，因为在同一个线程中的话，通常使用传统的逻辑就可以，不需要进行回压处理；
 2. 发布者发出数据的速度高于订阅者处理数据的速度，也就是处于“PUSH”状态下，如果相反，那就是“PUll”状态，不需要处理回压。
+我们可以自定义subscriber，并在subscriber中使用`request(n)`来通过 subscription 向上游传递 背压请求
+```java
+Flux<String> source = someStringSource();
 
+source.map(String::toUpperCase)
+      .subscribe(new BaseSubscriber<String>() { 
+          @Override
+          protected void hookOnSubscribe(Subscription subscription) {
+              //在开始这个流的时候请求一个元素值。
+              request(1); 
+          }
+          @Override
+          protected void hookOnNext(String value) {
+                //执行onnext的时候向上游请求一个元素
+              request(1); 
+          }
+      });
+```
 ### 3.4 Reactor流程总结
 
 1. 在声明阶段，我们像 俄罗斯套娃 一样，创建一个嵌套一个的 Publisher
